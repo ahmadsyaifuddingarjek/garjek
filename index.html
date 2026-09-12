@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GARJEK — Pendaftaran Driver</title>
+<style>
+:root{--p:#0f766e;--p2:#115e59;--bg:#f4f7f7;--card:#fff;--text:#172124;--muted:#657277;--line:#dce5e5;--danger:#b42318;--ok:#067647}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;padding:28px 18px}header .wrap{max-width:1100px;margin:auto}header h1{margin:0;font-size:28px}header p{margin:7px 0 0;opacity:.9}
+nav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}.nav{max-width:1100px;margin:auto;display:flex;gap:8px;padding:10px 18px;overflow:auto}.nav button{border:0;background:#eef5f4;color:var(--p2);padding:10px 14px;border-radius:10px;white-space:nowrap;font-weight:700;cursor:pointer}
+main{max-width:1100px;margin:24px auto;padding:0 18px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 8px 30px #173b3b0b;margin-bottom:18px}.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:20px}.step{height:8px;background:#dce8e7;border-radius:99px}.step.on{background:var(--p)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.full{grid-column:1/-1}label{font-weight:700;font-size:13px;display:block;margin-bottom:6px}input,select,textarea{width:100%;border:1px solid #cbd8d7;border-radius:10px;padding:12px;font:inherit;background:#fff}textarea{min-height:90px;resize:vertical}.hint{font-size:12px;color:var(--muted);margin-top:5px}.actions{display:flex;gap:10px;justify-content:space-between;margin-top:18px;flex-wrap:wrap}button.primary,button.secondary{border:0;border-radius:11px;padding:12px 17px;font-weight:800;cursor:pointer}.primary{background:var(--p);color:#fff}.secondary{background:#eaf1f0;color:#134e4a}.service{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.service label{border:2px solid var(--line);padding:18px;border-radius:15px;cursor:pointer}.service input{width:auto}.service label:has(input:checked){border-color:var(--p);background:#effaf8}.filebox{border:1px dashed #9fb7b5;padding:13px;border-radius:12px}.status{padding:14px;border-radius:12px;background:#f0f8f6}.success{color:var(--ok)}.error{color:var(--danger)}.hidden{display:none!important}.loading{opacity:.6;pointer-events:none}.code{font-size:24px;font-weight:900;letter-spacing:1px}.notice{background:#fff7e6;border:1px solid #f0d49b;padding:14px;border-radius:12px}.copy{cursor:pointer}.footer{color:var(--muted);text-align:center;padding:20px;font-size:12px}
+@media(max-width:700px){.grid,.service{grid-template-columns:1fr}.steps{grid-template-columns:repeat(3,1fr)}header h1{font-size:23px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>GARJEK — Pendaftaran Mitra Driver</h1><p>Daftar GARBIKE atau GARCAR secara online.</p></div></header>
+<nav><div class="nav"><button onclick="showPage('register')">Daftar Driver</button><button onclick="showPage('status')">Cek Status</button><button onclick="showPage('admin')">Admin</button></div></nav>
+<main>
+<section id="registerPage">
+<div class="card"><div class="steps" id="steps"></div><h2 id="stepTitle">Data Diri</h2><form id="regForm"></form></div>
+</section>
+<section id="statusPage" class="hidden">
+<div class="card"><h2>Cek Status Pendaftaran</h2><p>Masukkan NIK 16 digit. Data pribadi yang ditampilkan akan dimasking.</p>
+<div class="grid"><div><label>NIK</label><input id="statusNik" maxlength="16" inputmode="numeric"></div><div style="align-self:end"><button class="primary" onclick="checkStatus()">Cari Pendaftaran</button></div></div>
+<div id="statusResult"></div></div>
+</section>
+<section id="adminPage" class="hidden">
+<div id="loginBox" class="card"><h2>Login Admin</h2><div class="grid"><div><label>Username</label><input id="adminUser" autocomplete="username"></div><div><label>Password</label><input id="adminPass" type="password" autocomplete="current-password"></div></div><div class="actions"><button class="primary" onclick="adminLogin()">Masuk</button></div><div id="loginMsg"></div></div>
+<div id="adminBox" class="hidden"></div>
+</section>
+</main><div class="footer">GARJEK • Sistem pendaftaran mitra driver</div>
+<script>
+const API='PASTE_APPS_SCRIPT_WEB_APP_URL_DI_SINI';
+let config={feeGarbike:150000,feeGarcar:0,danaName:'AHMAD SYAIFFUDDIN',danaNumber:'081932592253'};
+let step=1, token=sessionStorage.getItem('garjek_admin_token')||'';
+const fields=[
+{title:'Data Diri',html:`<div class="grid">
+<div><label>Nama Lengkap sesuai KTP *</label><input name="nama" required data-upper></div>
+<div><label>NIK (16 digit) *</label><input name="nik" maxlength="16" inputmode="numeric" required></div>
+<div><label>Tempat Lahir *</label><input name="tempatLahir" required data-upper></div>
+<div><label>Tanggal Lahir *</label><input type="date" name="tanggalLahir" required></div>
+<div><label>Jenis Kelamin *</label><select name="jenisKelamin" required><option value="">Pilih</option><option>LAKI-LAKI</option><option>PEREMPUAN</option></select></div>
+<div><label>WhatsApp *</label><input name="whatsapp" inputmode="tel" required></div>
+<div><label>Email</label><input name="email" type="email"></div>
+<div><label>Status Pernikahan *</label><select name="statusPernikahan" required><option value="">Pilih</option><option>BELUM MENIKAH</option><option>MENIKAH</option><option>CERAI</option></select></div></div>`},
+{title:'Alamat',html:`<div class="grid">
+<div><label>Negara *</label><input name="negara" value="INDONESIA" required data-upper></div>
+<div><label>Provinsi *</label><input name="provinsi" required data-upper></div>
+<div><label>Kabupaten/Kota *</label><input name="kabupatenKota" required data-upper></div>
+<div><label>Kecamatan *</label><input name="kecamatan" required data-upper></div>
+<div><label>Desa/Kelurahan *</label><input name="desaKelurahan" required data-upper></div>
+<div><label>Dusun</label><input name="dusun" data-upper></div>
+<div><label>RT *</label><input name="rt" inputmode="numeric" required></div>
+<div><label>RW *</label><input name="rw" inputmode="numeric" required></div>
+<div><label>Kode Pos *</label><input name="kodePos" inputmode="numeric" maxlength="5" required></div>
+<div class="full"><label>Alamat Lengkap *</label><textarea name="alamatLengkap" required data-upper></textarea></div></div>`},
+{title:'Layanan & Kendaraan',html:`<div class="service">
+<label><input type="radio" name="layanan" value="GARBIKE" required onchange="serviceChange()"> <b>GARBIKE</b><br><small>Sepeda motor</small></label>
+<label><input type="radio" name="layanan" value="GARCAR" onchange="serviceChange()"> <b>GARCAR</b><br><small>Mobil</small></label></div>
+<div class="grid" style="margin-top:15px">
+<div><label>Nomor Polisi *</label><input name="nomorPolisi" required data-upper></div><div><label>Merek *</label><input name="merek" required data-upper></div>
+<div><label>Tipe *</label><input name="tipe" required data-upper></div><div><label>Tahun *</label><input name="tahun" maxlength="4" inputmode="numeric" required></div>
+<div><label>Warna *</label><input name="warna" required data-upper></div><div><label>Nomor STNK *</label><input name="nomorSTNK" required data-upper></div>
+<div><label>Nomor BPKB</label><input name="nomorBPKB" data-upper></div><div><label>Nama Pemilik *</label><input name="namaPemilik" required data-upper></div>
+<div><label>Status Kepemilikan *</label><select name="statusKepemilikan" required><option value="">Pilih</option><option>MILIK SENDIRI</option><option>MILIK KELUARGA</option><option>SEWA</option><option>LAINNYA</option></select></div>
+</div>`},
+{title:'Dokumen',html:`<div class="grid">
+${fileField('ktp','KTP','JPG/PNG/PDF, maksimal 5 MB')}
+${fileField('sim','SIM','JPG/PNG/PDF, maksimal 5 MB')}
+${fileField('stnk','STNK','JPG/PNG/PDF, maksimal 5 MB')}
+${fileField('fotoDriver','Foto setengah badan','JPG/PNG, maksimal 5 MB')}
+${fileField('fotoKendaraan','Foto kendaraan tampak depan','JPG/PNG, maksimal 5 MB')}
+</div>`},
+{title:'Pembayaran',html:`<div class="notice"><b>GARBIKE: Rp ${formatRp(config.feeGarbike)}</b><br>Pembayaran DANA: <b>${config.danaName}</b> — <span class="copy" onclick="navigator.clipboard.writeText('${config.danaNumber}')">${config.danaNumber}</span><br><button type="button" class="secondary" onclick="navigator.clipboard.writeText('${config.danaNumber}')">Salin Nomor DANA</button><p class="hint">Pembayaran wajib diverifikasi admin. Jika GARCAR tidak dikenakan biaya, tetap unggah bukti sesuai instruksi admin.</p></div>
+<div style="margin-top:15px">${fileField('buktiPembayaran','Bukti Pembayaran','JPG/PNG/PDF, maksimal 5 MB')}</div>`},
+{title:'Konfirmasi',html:`<div class="notice"><b>Periksa kembali data Anda.</b><br>Dengan mengirim formulir, Anda menyatakan bahwa data yang diberikan benar dan menyetujui penggunaannya untuk proses pendaftaran mitra driver Garjek.</div><label style="margin-top:15px"><input type="checkbox" name="persetujuan" required> Saya menyetujui pernyataan tersebut.</label><div id="review" class="status" style="margin-top:15px"></div>`}
+];
+function fileField(name,label,hint){return `<div class="filebox"><label>${label} *</label><input type="file" name="${name}" accept=".jpg,.jpeg,.png,.pdf" required><div class="hint">${hint}</div></div>`}
+function formatRp(n){return new Intl.NumberFormat('id-ID').format(n)}
+async function api(payload){if(!API||API.includes('PASTE_'))throw Error('URL Web App Apps Script belum diisi di index.html.');const r=await fetch(API,{method:'POST',body:JSON.stringify(payload)});return r.json()}
+async function loadConfig(){try{const r=await api({action:'publicConfig'});if(r.ok)config=r.config}catch(e){}}
+function showPage(p){document.getElementById('registerPage').classList.toggle('hidden',p!=='register');document.getElementById('statusPage').classList.toggle('hidden',p!=='status');document.getElementById('adminPage').classList.toggle('hidden',p!=='admin');if(p==='admin'&&token)loadAdmin()}
+function renderStep(){document.getElementById('steps').innerHTML=fields.map((_,i)=>`<div class="step ${i<step?'on':''}"></div>`).join('');document.getElementById('stepTitle').textContent=fields[step-1].title;const f=document.getElementById('regForm');f.innerHTML=fields[step-1].html+`<div class="actions">${step>1?'<button type="button" class="secondary" onclick="prevStep()">Kembali</button>':'<span></span>'}${step<fields.length?'<button type="button" class="primary" onclick="nextStep()">Lanjut</button>':'<button type="button" class="primary" onclick="submitReg()">Kirim Pendaftaran</button>'}</div>`;restoreData();if(step===6)review();document.querySelectorAll('[data-upper]').forEach(x=>x.addEventListener('input',()=>x.value=x.value.toUpperCase()))}
+let saved={};
+function collect(){document.querySelectorAll('#regForm input,#regForm select,#regForm textarea').forEach(x=>{if(x.type!=='file'&&x.name&&x.type!=='radio')saved[x.name]=x.value.toUpperCase?x.value.toUpperCase():x.value;if(x.type==='radio'&&x.checked)saved[x.name]=x.value});}
+function restoreData(){Object.keys(saved).forEach(k=>{const x=document.querySelector(`[name="${k}"]`);if(x&&x.type!=='radio')x.value=saved[k];if(x&&x.type==='radio')document.querySelectorAll(`[name="${k}"]`).forEach(r=>r.checked=r.value===saved[k])})}
+function validateCurrent(){const f=document.getElementById('regForm');if(!f.reportValidity())return false;collect();if(step===1&&!/^\d{16}$/.test(saved.nik||'')){alert('NIK wajib tepat 16 digit.');return false}return true}
+function nextStep(){if(!validateCurrent())return;step++;renderStep()}
+function prevStep(){collect();step--;renderStep()}
+function serviceChange(){collect()}
+function review(){document.getElementById('review').innerHTML=`<b>Nama:</b> ${esc(saved.nama||'-')}<br><b>NIK:</b> ${esc(saved.nik||'-')}<br><b>Layanan:</b> ${esc(saved.layanan||'-')}<br><b>Kendaraan:</b> ${esc(saved.merek||'')} ${esc(saved.tipe||'')} — ${esc(saved.nomorPolisi||'')}`}
+async function readFiles(){const names=['ktp','sim','stnk','fotoDriver','fotoKendaraan','buktiPembayaran'],out=[];for(const name of names){const input=document.querySelector(`[name="${name}"]`);if(!input||!input.files[0])throw Error('File '+name+' wajib diunggah.');const file=input.files[0];if(file.size>5*1024*1024)throw Error(file.name+' lebih dari 5 MB.');const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(file)});out.push({field:name,name:file.name,mimeType:file.type,base64})}return out}
+async function submitReg(){if(!validateCurrent())return;const btn=document.querySelector('#regForm .primary');btn.disabled=true;btn.textContent='Mengirim...';try{const files=await readFiles();const r=await api({action:'register',data:saved,files});if(!r.ok)throw Error(r.error);document.getElementById('regForm').innerHTML=`<div class="status success"><div>PENDAFTARAN BERHASIL</div><div class="code">${r.registrationNumber}</div><p>Status: ${r.status}</p><p>Simpan nomor pendaftaran untuk pengecekan status.</p></div>`;document.getElementById('stepTitle').textContent='Selesai';document.getElementById('steps').innerHTML='';}catch(e){alert(e.message)}finally{btn.disabled=false;btn.textContent='Kirim Pendaftaran'}}
+async function checkStatus(){const nik=document.getElementById('statusNik').value.replace(/\D/g,'');const box=document.getElementById('statusResult');box.innerHTML='Mencari...';try{const r=await api({action:'checkStatus',nik});if(!r.ok)throw Error(r.error);if(!r.found){box.innerHTML='<div class="status error">Data tidak ditemukan.</div>';return}const d=r.data;box.innerHTML=`<div class="status" style="margin-top:15px"><b>Nomor Pendaftaran:</b> ${esc(d.registrationNumber)}<br><b>Nama:</b> ${esc(d.name)}<br><b>NIK:</b> ${esc(d.nik)}<br><b>Layanan:</b> ${esc(d.service)}<br><b>Tanggal:</b> ${esc(d.registeredAt)}<br><b>Status Dokumen:</b> ${esc(d.documentStatus)}<br><b>Status Pembayaran:</b> ${esc(d.paymentStatus)}<br><b>Status Pendaftaran:</b> <b>${esc(d.status)}</b><br>${d.note?'<b>Catatan:</b> '+esc(d.note):''}</div>`}catch(e){box.innerHTML='<div class="status error">'+esc(e.message)+'</div>'}}
+async function adminLogin(){const u=document.getElementById('adminUser').value,p=document.getElementById('adminPass').value;try{const r=await api({action:'login',username:u,password:p});if(!r.ok)throw Error(r.error);token=r.token;sessionStorage.setItem('garjek_admin_token',token);loadAdmin()}catch(e){document.getElementById('loginMsg').innerHTML='<p class="error">'+esc(e.message)+'</p>'}}
+async function loadAdmin(){document.getElementById('loginBox').classList.add('hidden');const box=document.getElementById('adminBox');box.classList.remove('hidden');box.innerHTML='<div class="card">Memuat dashboard...</div>';try{const [s,l]=await Promise.all([api({action:'adminStats',token}),api({action:'adminList',token})]);if(!s.ok)throw Error(s.error);box.innerHTML=adminHtml(s.stats,s.chart,l.data)}catch(e){sessionStorage.removeItem('garjek_admin_token');token='';document.getElementById('loginBox').classList.remove('hidden');box.classList.add('hidden');alert(e.message)}}
+function adminHtml(s,chart,list){return `<div class="card"><div class="actions"><h2 style="margin:0">Dashboard Admin</h2><button class="secondary" onclick="loadAdmin()">Refresh</button></div><div class="grid">${stat('Total',s.total)}${stat('Hari Ini',s.today)}${stat('GARBIKE',s.garbike)}${stat('GARCAR',s.garcar)}${stat('Menunggu',s.pending)}${stat('Disetujui',s.approved)}${stat('Ditolak',s.rejected)}${stat('Perlu Perbaikan',s.needFix)}${stat('Pembayaran Menunggu',s.paymentPending)}</div></div>
+<div class="card"><h3>Rekap Bulanan</h3>${chart.map(x=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee"><span>${x.month}</span><b>${x.count}</b></div>`).join('')}</div>
+<div class="card"><div class="grid"><div><label>Cari</label><input id="aq" placeholder="Nomor, NIK, nama, WA, nopol"></div><div><label>Layanan</label><select id="as"><option value="">Semua</option><option>GARBIKE</option><option>GARCAR</option></select></div><div><label>Status</label><select id="ast"><option value="">Semua</option><option>MENUNGGU VERIFIKASI</option><option>DISETUJUI</option><option>DITOLAK</option><option>PERLU PERBAIKAN</option></select></div><div style="align-self:end"><button class="primary" onclick="filterAdmin()">Filter</button></div></div><div id="adminTable" style="overflow:auto;margin-top:15px">${table(list)}</div></div>`}
+function stat(a,b){return `<div class="status"><small>${a}</small><div style="font-size:24px;font-weight:900">${b}</div></div>`}
+function table(list){return `<table style="width:100%;border-collapse:collapse"><tr><th style="text-align:left;padding:8px">No Pendaftaran</th><th>Nama</th><th>Layanan</th><th>Status</th><th>Aksi</th></tr>${list.map(x=>`<tr><td style="padding:8px">${esc(x.registrationNumber)}</td><td>${esc(x.name)}</td><td>${esc(x.service)}</td><td>${esc(x.status)}</td><td><button class="secondary" onclick="detail('${esc(x.registrationNumber)}')">Detail</button></td></tr>`).join('')}</table>`}
+async function filterAdmin(){const r=await api({action:'adminList',token,q:document.getElementById('aq').value,service:document.getElementById('as').value,status:document.getElementById('ast').value});if(r.ok)document.getElementById('adminTable').innerHTML=table(r.data);else alert(r.error)}
+async function detail(no){const r=await api({action:'adminDetail',token,registrationNumber:no});if(!r.ok)return alert(r.error);const d=r.data;const b=document.createElement('div');b.className='card';b.innerHTML=`<h2>Detail ${esc(d.registrationNumber)}</h2><div class="grid">${Object.entries(d).filter(([k])=>k!=='documents'&&k!=='folder').map(([k,v])=>`<div><small>${esc(k)}</small><div><b>${esc(v)}</b></div></div>`).join('')}</div><h3>Dokumen</h3>${Object.entries(d.documents).map(([k,v])=>`<p><b>${esc(k)}:</b> ${v?`<a href="${esc(v)}" target="_blank" rel="noopener">Buka file</a>`:'-'}</p>`).join('')}<hr><h3>Verifikasi</h3><div class="grid"><div><label>Dokumen</label><select id="vd"><option>${d.statusDokumen}</option><option>LENGKAP</option><option>PERLU PERBAIKAN</option></select></div><div><label>Pembayaran</label><select id="vp"><option>${d.statusPembayaran}</option><option>TERVERIFIKASI</option><option>TIDAK VALID</option><option>MENUNGGU VERIFIKASI</option></select></div><div><label>Status</label><select id="vs"><option>${d.statusPendaftaran}</option><option>DISETUJUI</option><option>DITOLAK</option><option>PERLU PERBAIKAN</option><option>MENUNGGU VERIFIKASI</option><option>DIPROSES</option></select></div><div class="full"><label>Catatan</label><textarea id="vn">${esc(d.catatan||'')}</textarea></div></div><button class="primary" onclick="saveVerify('${esc(no)}')">Simpan Verifikasi</button>`;document.getElementById('adminBox').prepend(b)}
+async function saveVerify(no){const r=await api({action:'updateStatus',token,registrationNumber:no,documentStatus:document.getElementById('vd').value,paymentStatus:document.getElementById('vp').value,status:document.getElementById('vs').value,note:document.getElementById('vn').value});alert(r.ok?r.message:r.error);if(r.ok)loadAdmin()}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+document.getElementById('statusNik').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,16));
+loadConfig().finally(renderStep);
+</script>
+</body></html>
